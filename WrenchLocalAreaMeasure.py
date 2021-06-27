@@ -116,8 +116,7 @@ def sizeCorrelator(inMM, lookupTable):
 			if(mapping[0] > inMM):
 				highIndex = i # The index of the first table input that is larger than the given input
 				break
-			
-			
+
 
 		# For readability
 		highValue = lookupTable[highIndex][0]
@@ -137,37 +136,50 @@ def sizeCorrelator(inMM, lookupTable):
 
 ###-----Wrench Measuring Constants and Variables-----###
 
+def lutInSize(e):
+    return e[0]
+
+
 MEASURE_WIDTH = 300
 
 
-WRENCH_SIZES_MM = [[1.0, '1mm'],
-				[2.0, '2mm'],
-				[3.0, '3mm'],
-				[4.0, '4mm'],
-				[5.0, '5mm']]
 
 WRENCH_SIZES_SAE = [[1.27, '0.050"'],
 				[1.59, '1/16'],
-				[1.98, '5/64'],
+#				[1.98, '5/64'],
 				[2.38, '3/32'],
 				[2.78, '7/64'],
 				[3.18, '1/8'],
 				[3.57, '9/64'], 
-				[3.97, '5/32'], 
+#				[3.97, '5/32'], 
 				[4.76, '3/16'], 
-				[5.56, '7/32'], 
+#				[5.56, '7/32'], 
 				[6.35, '1/4'], 
-				[7.94, '5/16'], 
+#				[7.94, '5/16'], 
 				[9.53, '3/8']]
 
-WRENCH_SIZES_LEGACY = {6.34: '0.050',
-				9.00: '1/16',
-				12.25: '5/64',
-				15.53: '3/32',
-				18.95: '7/64'}
+WRENCH_SIZES_MM = [[1.5, '1.5mm'],
+#				[2.0, '2mm'],
+				[2.5, '2.5mm'],
+				[3.0, '3mm'],
+#				[4.0, '4mm'],
+				[4.5, '4.5mm'],
+				[5.0, '5mm'], 
+#				[5.5, '5.5mm'], 
+				[6.0, '6mm'], 
+				[7.0, '7mm'], 
+#				[8.0, '8mm'], 
+				[9.0, '9mm'], 
+				[10.0, '10mm']]
 
-WRENCH_SIZES = WRENCH_SIZES_SAE # Choose which dataset(s) to use
+WRENCH_SIZES_CLOSE = [[1.99, '2mm or 5/64'],
+				[3.985, '4mm or 5/32'],
+				[7.96, '8mm or 5/16'],
+				[5.53, '5.5mm or 7/32']]
 
+
+WRENCH_SIZES = WRENCH_SIZES_SAE+WRENCH_SIZES_MM+WRENCH_SIZES_CLOSE # Choose which dataset(s) to use
+WRENCH_SIZES.sort(key=lutInSize) # Sort in place. Key defines the value to sort by, in this case the input of the lookup table.
 
 
 ###-----Camera and Frame Setup-----###
