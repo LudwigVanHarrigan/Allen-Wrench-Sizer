@@ -100,19 +100,77 @@ def pxToMM(px):
 	return (0.124*px) + 0.468
 
 
+def sizeCorrelator(inMM, lookupTable):
+	# inMM should be a float, and lookupTable should be an array of 2-element arrays (a 2 by x array?)
+	# lookupTable should also be sorted in ascending order. I ought to do that here.
+
+	# First, we catch the cases where the input is smaller or bigger than anything in the table
+	if(inMM < lookupTable[0][0]): # The former. lookupTable[0] is the first and smallest
+		closestIndex = 0
+	elif(inMM > lookupTable[-1][0]): # lookupTable[-1] has the last (and largest) value
+		closestIndex = -1 # The [-1] of a list is the last element
+	else: # If inMM is between the endpoints, we can find which table input its closest to
+
+		# First we find the first table input it is greater than
+		for i, mapping in enumerate(lookupTable): # mapping is exactly that: the mapping at i in the lookup table
+			if(mapping[0] > inMM):
+				highIndex = i # The index of the first table input that is larger than the given input
+				break
+			
+			
+
+		# For readability
+		highValue = lookupTable[highIndex][0]
+		# lowValue < inMM since the table is ascending. We know this exists because of the first check we did.
+		lowValue = lookupTable[highIndex-1][0] 
+
+		# Set to bigger value index if bigger value is closer to input than smaller value
+		# Otherwise, set to smaller value index
+		closestIndex = highIndex if abs(highValue-inMM) < abs(lowValue-inMM) else highIndex-1
+		
+	return lookupTable[closestIndex][1]
+
+
+
+
 
 
 ###-----Wrench Measuring Constants and Variables-----###
 
 MEASURE_WIDTH = 300
 
-WRENCH_SIZES = {6.34: '0.050',
+
+WRENCH_SIZES_MM = [[1.0, '1mm'],
+				[2.0, '2mm'],
+				[3.0, '3mm'],
+				[4.0, '4mm'],
+				[5.0, '5mm']]
+
+WRENCH_SIZES_SAE = [[1.27, '0.050"'],
+				[1.59, '1/16'],
+				[1.98, '5/64'],
+				[2.38, '3/32'],
+				[2.78, '7/64'],
+				[3.18, '1/8'],
+				[3.57, '9/64'], 
+				[3.97, '5/32'], 
+				[4.76, '3/16'], 
+				[5.56, '7/32'], 
+				[6.35, '1/4'], 
+				[7.94, '5/16'], 
+				[9.53, '3/8']]
+
+WRENCH_SIZES_LEGACY = {6.34: '0.050',
 				9.00: '1/16',
 				12.25: '5/64',
 				15.53: '3/32',
 				18.95: '7/64'}
 
+WRENCH_SIZES = WRENCH_SIZES_SAE # Choose which dataset(s) to use
 
+
+
+###-----Camera and Frame Setup-----###
 
 cam_props = {'brightness': 128, 'contrast': 128, 'saturation': 180,
              'gain': 0, 'sharpness': 125, 'exposure_auto': 0,
@@ -203,10 +261,6 @@ while(True):
 		box = cv2.minAreaRect(contours[largest_contour_index])
 		box_points = np.int0(cv2.boxPoints(box))
 		
-		#drawn_contour = [box_points] #Since drawContours() expects an array of contours (arrays of points) and boxPoints() returns an array of points, we must put it in another layer of list. Note that if we want to add anything else to be drawn, we can simply append it to drawn_contour.
-		drawn_contour = contours
-		drawn_contour.append(box_points)
-		
 		'''
 		x2 = center_x + 100
 		y2 = center_y + int(np.round(100*slopesMode))
@@ -217,13 +271,23 @@ while(True):
 		'''
 		#print(degrees(atan(slopesMode))) # Degrees of the allen wrench. Note that positive angles are pointing down.
 
-		box_center = findBoxCenter(box_points)
+		box_center = findBoxCenter(box_points) 
 		measureP1, measureP2 = generateMeasureyLine(box_center, atan(slopesMode)+(pi/2), length=100) 
 		
-		lineImage = generateLineImage(measureP1, measureP2, size = MEASURE_WIDTH) #Make the measuring stick image
+		lineImage = generateLineImage(measureP1, measureP2, size = MEASURE_WIDTH) #Make the measuring stick imageq
 		measureImage = cv2.bitwise_and(thresh, lineImage) # AND it with the monochrome threshold image
-		print(np.count_nonzero(measureImage)/MEASURE_WIDTH) # Count the number of white pixels
-		print(degrees(atan(slopesMode)))
+		mmAcross = pxToMM(np.count_nonzero(measureImage)/MEASURE_WIDTH) # Count the number of white pixels
+		
+		
+		print(sizeCorrelator(mmAcross, WRENCH_SIZES)) 
+		#print(degrees(atan(slopesMode)))
+		
+		
+		
+		
+		#drawn_contour = [box_points] #Since drawContours() expects an array of contours (arrays of points) and boxPoints() returns an array of points, we must put it in another layer of list. Note that if we want to add anything else to be drawn, we can simply append it to drawn_contour.
+		drawn_contour = contours
+		drawn_contour.append(box_points)
 		cv2.drawContours(image=frame, contours=drawn_contour, contourIdx=-1, color=(0,255,0), thickness=1)
 
 
