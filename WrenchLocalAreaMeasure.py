@@ -1,8 +1,8 @@
 from time import sleep
-import imutils
-import cv2
-import numpy as np
-from scipy import stats
+import imutils # A helpful helper library that helps with OpenCV
+import cv2 
+import numpy as np # For array stuff
+from scipy import stats # To calculate a mode
 from math import atan, atan2, degrees, sin, cos, pi
 import subprocess
 
@@ -11,6 +11,10 @@ import subprocess
 # - Implement some system to convert area ranges to allen wrench values
 # - Turn off continuous streaming? We only need a picture when we're scanning a wrench
 # - Lock camera settings (zoom, exposure, focus, etc.) somehow
+# - Fix the cropping code to work even if the source is smaller than the crop
+
+#   Ensure you have the right video device selected (see cv2.VideoCapture([video device index] + cv2.CAP_V4L2))
+#   You can check which devices are available with ls /dev | grep video
 
 
 def findSlope (point1, point2):
@@ -97,7 +101,8 @@ def generateMeasureyLine(point, angle, length=300):
 
 def pxToMM(px):
 
-	return (0.124*px) + 0.468
+	# return (0.124*px) + 0.468 # Calibration 1
+	return (0.122*px) + 0.54
 
 
 def sizeCorrelator(inMM, lookupTable):
@@ -144,13 +149,12 @@ MEASURE_WIDTH = 300
 
 
 
-WRENCH_SIZES_SAE = [[1.27, '0.050"'],
-				[1.59, '1/16'],
+WRENCH_SIZES_SAE = [[1.59, '1/16'],
 #				[1.98, '5/64'],
 				[2.38, '3/32'],
 				[2.78, '7/64'],
 				[3.18, '1/8'],
-				[3.57, '9/64'], 
+#				[3.57, '9/64'], 
 #				[3.97, '5/32'], 
 				[4.76, '3/16'], 
 #				[5.56, '7/32'], 
@@ -166,16 +170,19 @@ WRENCH_SIZES_MM = [[1.5, '1.5mm'],
 				[4.5, '4.5mm'],
 				[5.0, '5mm'], 
 #				[5.5, '5.5mm'], 
-				[6.0, '6mm'], 
+				[6.0, '6mm'],
 				[7.0, '7mm'], 
 #				[8.0, '8mm'], 
 				[9.0, '9mm'], 
 				[10.0, '10mm']]
 
+#Supposedly, the screw can't tell the difference between these sizes either.
 WRENCH_SIZES_CLOSE = [[1.99, '2mm or 5/64'],
 				[3.985, '4mm or 5/32'],
 				[7.96, '8mm or 5/16'],
-				[5.53, '5.5mm or 7/32']]
+				[5.53, '5.5mm or 7/32'],
+				[1.27, '1.27mm or 0.050"'],
+				[3.535, '3.5mm or 9/64']]
 
 
 WRENCH_SIZES = WRENCH_SIZES_SAE+WRENCH_SIZES_MM+WRENCH_SIZES_CLOSE # Choose which dataset(s) to use
@@ -288,9 +295,11 @@ while(True):
 		
 		lineImage = generateLineImage(measureP1, measureP2, size = MEASURE_WIDTH) #Make the measuring stick imageq
 		measureImage = cv2.bitwise_and(thresh, lineImage) # AND it with the monochrome threshold image
-		mmAcross = pxToMM(np.count_nonzero(measureImage)/MEASURE_WIDTH) # Count the number of white pixels
 		
-		
+		pxAcross = np.count_nonzero(measureImage)/MEASURE_WIDTH
+		mmAcross = pxToMM(pxAcross) # Count the number of white pixels
+		#print(pxAcross)
+		#print(mmAcross)
 		print(sizeCorrelator(mmAcross, WRENCH_SIZES)) 
 		#print(degrees(atan(slopesMode)))
 		
@@ -299,7 +308,8 @@ while(True):
 		
 		#drawn_contour = [box_points] #Since drawContours() expects an array of contours (arrays of points) and boxPoints() returns an array of points, we must put it in another layer of list. Note that if we want to add anything else to be drawn, we can simply append it to drawn_contour.
 		drawn_contour = contours
-		drawn_contour.append(box_points)
+		np.append(drawn_contour, box_points)
+		#drawn_contour.append(box_points)
 		cv2.drawContours(image=frame, contours=drawn_contour, contourIdx=-1, color=(0,255,0), thickness=1)
 
 
